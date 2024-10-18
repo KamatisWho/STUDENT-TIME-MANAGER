@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - Untitled</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Alarm App</title>
+</head>
+<body>
+    <h1>Activity Alarm App</h1>
+    
+    <select id="activity-type">
+        <option value="">Select Activity</option>
+        <option value="Homework">Homework</option>
+        <option value="Notes">Notes</option>
+        <option value="Review">Review</option>
+    </select>
+    
+    <button id="add-activity">Add Activity</button>
+    
+    <ul id="activity-list"></ul>
+
+    <script src="script.js"></script>
+</body>
+</html>
+<!-- partial -->
+  <script  src="./script.js"></script>
+
+</body>
+</html>
+
+// Load activities from localStorage
+function loadActivities() {
+    const activities = JSON.parse(localStorage.getItem('activities')) || [];
+    activities.forEach(activity => {
+        addActivityToList(activity.name, activity.alarm);
+    });
+}
+
+// Add activity to the list and localStorage
+function addActivityToList(activity, alarm = null) {
+    const li = document.createElement('li');
+    li.textContent = activity;
+
+    if (alarm) {
+        const alarmSpan = document.createElement('span');
+        alarmSpan.textContent = ` (${alarm})`;
+        li.appendChild(alarmSpan);
+    }
+
+    const countdownSpan = document.createElement('span');
+    countdownSpan.classList.add('countdown'); // Class for styling if needed
+    li.appendChild(countdownSpan); // Space for countdown display
+
+    const alarmButton = document.createElement('button');
+    alarmButton.textContent = "Set Alarm";
+    alarmButton.addEventListener('click', function() {
+        setAlarm(li, activity, countdownSpan);
+        alarmButton.disabled = true; // Disable button after setting alarm
+    });
+
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = "Delete Activity";
+    deleteButton.addEventListener('click', function() {
+        deleteActivity(li);
+    });
+
+    li.appendChild(alarmButton);
+    li.appendChild(deleteButton);
+    document.getElementById('activity-list').appendChild(li);
+}
+
+// Save activities to localStorage
+function saveActivities() {
+    const activities = [];
+    document.querySelectorAll('#activity-list li').forEach(li => {
+        const activityText = li.firstChild.nodeValue;
+        const alarmText = li.querySelector('span') ? li.querySelector('span').textContent.trim() : '';
+        activities.push({ name: activityText, alarm: alarmText });
+    });
+    localStorage.setItem('activities', JSON.stringify(activities));
+}
+
+// Add event listener for adding activities
+document.getElementById('add-activity').addEventListener('click', function() {
+    const activityType = document.getElementById('activity-type').value;
+    if (activityType) {
+        addActivityToList(activityType);
+        saveActivities();
+        document.getElementById('activity-type').value = ""; // Reset the dropdown
+    } else {
+        alert("Please select an activity type.");
+    }
+});
+
+// Set an alarm for an activity
+function setAlarm(activityItem, activityName, countdownSpan) {
+    // Clear previous alarm dropdown if exists
+    const existingSelect = document.querySelector('.alarm-select');
+    if (existingSelect) existingSelect.remove();
+
+    const timeSelect = document.createElement('select');
+    timeSelect.classList.add('alarm-select'); // Add a class for easy selection
+    const times = [
+        { value: 15, label: "15 minutes" },
+        { value: 30, label: "30 minutes" },
+        { value: 60, label: "1 hour" },
+        { value: 120, label: "2 hours" },
+        { value: 1440, label: "1 day" }
+    ];
+
+    times.forEach(time => {
+        const option = document.createElement('option');
+        option.value = time.value;
+        option.textContent = time.label;
+        timeSelect.appendChild(option);
+    });
+
+    const setButton = document.createElement('button');
+    setButton.textContent = "Set Alarm";
+
+    const container = document.createElement('div');
+    container.appendChild(timeSelect);
+    container.appendChild(setButton);
+    
+    document.body.appendChild(container); // Append to the body for modal-like behavior
+
+    setButton.addEventListener('click', function() {
+        const selectedMinutes = Number(timeSelect.value);
+        if (!selectedMinutes) return; // No time selected
+
+        const totalTime = selectedMinutes * 60; // Convert to seconds
+        let remainingTime = totalTime;
+
+        const interval = setInterval(function() {
+            remainingTime--;
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+
+            countdownSpan.textContent = `Countdown: ${minutes}m ${seconds}s`;
+
+            if (remainingTime <= 0) {
+                clearInterval(interval);
+                alert(`Time's up for: ${activityName}!`);
+                const alarmText = `${selectedMinutes} mins`;
+                const alarmSpan = document.createElement('span');
+                alarmSpan.textContent = ` (${alarmText})`;
+                activityItem.appendChild(alarmSpan);
+                saveActivities();
+                countdownSpan.textContent = ''; // Clear countdown display
+            }
+        }, 1000); // Update every second
+
+        container.remove(); // Clean up
+    });
+}
+
+// Delete an entire activity
+function deleteActivity(activityItem) {
+    activityItem.remove();
+    saveActivities();
+}
+
+// Load activities when the app starts
+loadActivities();
+.container {
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.activity-input {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+select, button {
+    padding: 10px;
+    margin: 5px;
+}
+
+#activity-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#activity-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px 0;
+}
+
+button {
+    padding: 5px 10px; /* Smaller button size */
+    font-size: 0.9em; /* Slightly smaller font size */
+    cursor: pointer;
+}
+
+span {
+    margin-left: 10px;
+}
